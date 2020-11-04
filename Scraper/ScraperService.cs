@@ -8,7 +8,6 @@ namespace Scraper
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
     using HtmlAgilityPack;
 
@@ -18,7 +17,7 @@ namespace Scraper
     /// </summary>
     public class ScraperService
     {
-        private const string DefaultUrl = @"https://ElectricBikeReview.com";
+        private const string DefaultUrl = @"https://electricbikereview.com/category/bikes";
 
         private static int count;
 
@@ -26,9 +25,6 @@ namespace Scraper
         private readonly HashSet<Uri> knownPages = new HashSet<Uri>();
         private readonly Queue<Uri> pagesToProcess = new Queue<Uri>();
         private readonly ReviewResult result = new ReviewResult();
-
-        private readonly string[] pageUrlEqual = new string[] { @"/" };
-        private readonly string[] pageUrlStartWith = new string[] { @"/category/bikes/page" };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ScraperService"/> class.
@@ -64,7 +60,7 @@ namespace Scraper
             {
                 this.pagesToProcess.Clear();
                 this.knownPages.Clear();
-                this.AddPageToProcess(this.firstUri.ToString(), true);
+                this.AddPageToProcess(this.firstUri.ToString());
 
                 while (this.pagesToProcess.Count > 0 || htmlDoc != null)
                 {
@@ -84,10 +80,9 @@ namespace Scraper
                     // Process HTML document.
                     if (htmlDoc != null)
                     {
-                        this.FindAllAnchors(htmlDoc, "//a", false);
+                        this.FindAllAnchors(htmlDoc, "//a[contains(@href,'/category/bikes/page/')]");
                         this.FindAllAnchors(htmlDoc, "//div[contains(@class,'review-item-wrapper')]//div[contains(@class,'review-read-more-wrapper')]/a");
                         htmlDoc = null;
-                        break;
                     }
 
                     // Save retrieve HTML document.
@@ -109,11 +104,8 @@ namespace Scraper
         /// Add page to process.
         /// </summary>
         /// <param name="url">Add URL to list of pages to process.  Ignore if already have it.</param>
-        /// <param name="addThis">True to skip the anchor check list.</param>
-        private void AddPageToProcess(string url, bool addThis)
+        private void AddPageToProcess(string url)
         {
-            count++;
-
             if (!string.IsNullOrWhiteSpace(url)
                 && !url.StartsWith("#", StringComparison.OrdinalIgnoreCase))
             {
@@ -121,19 +113,13 @@ namespace Scraper
 
                 if (uri.HostNameType == UriHostNameType.Dns && uri.Host == this.firstUri.Host)
                 {
-                    // Anchor check list.
-                    //// TODO: Change to not use.  Use XPath.
-                    if (addThis
-                        || this.pageUrlEqual.Any(s => uri.LocalPath == s)
-                        || this.pageUrlStartWith.Any(s => uri.LocalPath.StartsWith(s, StringComparison.OrdinalIgnoreCase)))
+                    if (!this.knownPages.Contains(uri))
                     {
-                        if (!this.knownPages.Contains(uri))
-                        {
-                            this.pagesToProcess.Enqueue(uri);
-                            this.knownPages.Add(uri);
-                            this.result.UrlCount++;
-                            Console.WriteLine($"{count} Enqueue: {uri}");
-                        }
+                        count++;
+                        this.pagesToProcess.Enqueue(uri);
+                        this.knownPages.Add(uri);
+                        this.result.UrlCount++;
+                        Console.WriteLine($"{count} Enqueue: {uri}");
                     }
                 }
             }
@@ -144,8 +130,7 @@ namespace Scraper
         /// </summary>
         /// <param name="htmlDoc">HTML document to parse.</param>
         /// <param name="xpath">The XPath expression to find the anchors.</param>
-        /// <param name="addThis">True to skip the anchor check list.</param>
-        private void FindAllAnchors(HtmlDocument htmlDoc, string xpath, bool addThis = true)
+        private void FindAllAnchors(HtmlDocument htmlDoc, string xpath)
         {
             HtmlNodeCollection anchors = htmlDoc.DocumentNode.SelectNodes(xpath);
             foreach (var anchorNode in anchors)
@@ -153,7 +138,7 @@ namespace Scraper
                 HtmlAttribute attribute = anchorNode.Attributes["href"];
                 if (attribute != null)
                 {
-                    this.AddPageToProcess(attribute.Value, addThis);
+                    this.AddPageToProcess(attribute.Value);
                 }
             }
         }

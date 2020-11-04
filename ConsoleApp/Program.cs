@@ -12,8 +12,6 @@
         /// <returns></returns>
         private static async Task Main()
         {
-            Console.WriteLine("Hello World!");
-
             var service = new ScraperService();
             var result = await service.GetFromWebAsync();
 
