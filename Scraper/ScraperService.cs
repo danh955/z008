@@ -58,42 +58,51 @@ namespace Scraper
             HtmlDocument htmlDoc = null;
             int cycle = 0;
 
-            this.pagesToProcess.Clear();
-            this.knownPages.Clear();
             this.result.Clear();
-            this.AddPageToProcess(this.firstUri.ToString());
-
-            while (this.pagesToProcess.Count > 0 || htmlDoc != null)
+            this.result.StartTime = DateTimeOffset.Now;
+            try
             {
-                cycle++;
-                Console.WriteLine();
-                Console.WriteLine($"Cycle: {cycle}  pagesToProcess: {this.pagesToProcess.Count}   Is htmlDoc null: {htmlDoc == null}");
-                Console.WriteLine();
+                this.pagesToProcess.Clear();
+                this.knownPages.Clear();
+                this.AddPageToProcess(this.firstUri.ToString());
 
-                Task<HtmlDocument> htmlDocTask = null;
-                if (this.pagesToProcess.Count > 0)
+                while (this.pagesToProcess.Count > 0 || htmlDoc != null)
                 {
-                    Uri url = this.pagesToProcess.Dequeue();
+                    cycle++;
                     Console.WriteLine();
-                    Console.WriteLine($"Dequeue: {url}");
-                    htmlDocTask = web.LoadFromWebAsync(url.ToString());
+                    Console.WriteLine($"Cycle: {cycle}  pagesToProcess: {this.pagesToProcess.Count}   Is htmlDoc null: {htmlDoc == null}");
+                    Console.WriteLine();
+
+                    Task<HtmlDocument> htmlDocTask = null;
+                    if (this.pagesToProcess.Count > 0)
+                    {
+                        Uri url = this.pagesToProcess.Dequeue();
+                        Console.WriteLine();
+                        Console.WriteLine($"Dequeue: {url}");
+                        htmlDocTask = web.LoadFromWebAsync(url.ToString());
+                    }
+
+                    // Process HTML document.
+                    if (htmlDoc != null)
+                    {
+                        this.FindAllAnchors(htmlDoc);
+                        htmlDoc = null;
+                        break;
+                    }
+
+                    // Save retrieve HTML document.
+                    if (htmlDocTask != null)
+                    {
+                        htmlDoc = await htmlDocTask;
+                    }
                 }
 
-                // Process HTML document.
-                if (htmlDoc != null)
-                {
-                    this.FindAllAnchors(htmlDoc);
-                    htmlDoc = null;
-                }
-
-                // Save retrieve HTML document.
-                if (htmlDocTask != null)
-                {
-                    htmlDoc = await htmlDocTask;
-                }
+                return this.result;
             }
-
-            return this.result;
+            finally
+            {
+                this.result.EndTime = DateTimeOffset.Now;
+            }
         }
 
         /// <summary>

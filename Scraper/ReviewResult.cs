@@ -4,6 +4,8 @@
 
 namespace Scraper
 {
+    using System;
+
     /// <summary>
     /// Review result class.
     /// </summary>
@@ -15,11 +17,23 @@ namespace Scraper
         public int UrlCount { get; internal set; }
 
         /// <summary>
+        /// Gets process start time.
+        /// </summary>
+        public DateTimeOffset StartTime { get; internal set; }
+
+        /// <summary>
+        /// Gets process end time.
+        /// </summary>
+        public DateTimeOffset EndTime { get; internal set; }
+
+        /// <summary>
         /// Set all fields to its default values.
         /// </summary>
         internal void Clear()
         {
-            this.UrlCount = 0;
+            this.UrlCount = default;
+            this.StartTime = default;
+            this.EndTime = default;
         }
     }
 }

@@ -16,6 +16,9 @@
 
             var service = new ScraperService();
             var result = await service.GetFromWebAsync();
+
+            TimeSpan runTime = result.EndTime - result.StartTime;
+            Console.WriteLine($"Run time of {runTime}");
         }
     }
 }
