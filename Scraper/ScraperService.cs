@@ -49,7 +49,7 @@ namespace Scraper
         }
 
         /// <summary>
-        /// Get a list of folios.
+        /// Get a list of.
         /// </summary>
         /// <returns>The ready to go folio result.</returns>
         public async Task<ReviewResult> GetFromWebAsync()
@@ -64,14 +64,13 @@ namespace Scraper
             {
                 this.pagesToProcess.Clear();
                 this.knownPages.Clear();
-                this.AddPageToProcess(this.firstUri.ToString());
+                this.AddPageToProcess(this.firstUri.ToString(), true);
 
                 while (this.pagesToProcess.Count > 0 || htmlDoc != null)
                 {
                     cycle++;
                     Console.WriteLine();
                     Console.WriteLine($"Cycle: {cycle}  pagesToProcess: {this.pagesToProcess.Count}   Is htmlDoc null: {htmlDoc == null}");
-                    Console.WriteLine();
 
                     Task<HtmlDocument> htmlDocTask = null;
                     if (this.pagesToProcess.Count > 0)
@@ -85,7 +84,8 @@ namespace Scraper
                     // Process HTML document.
                     if (htmlDoc != null)
                     {
-                        this.FindAllAnchors(htmlDoc);
+                        this.FindAllAnchors(htmlDoc, "//a", false);
+                        this.FindAllAnchors(htmlDoc, "//div[contains(@class,'review-item-wrapper')]//div[contains(@class,'review-read-more-wrapper')]/a");
                         htmlDoc = null;
                         break;
                     }
@@ -109,7 +109,8 @@ namespace Scraper
         /// Add page to process.
         /// </summary>
         /// <param name="url">Add URL to list of pages to process.  Ignore if already have it.</param>
-        private void AddPageToProcess(string url)
+        /// <param name="addThis">True to skip the anchor check list.</param>
+        private void AddPageToProcess(string url, bool addThis)
         {
             count++;
 
@@ -120,7 +121,10 @@ namespace Scraper
 
                 if (uri.HostNameType == UriHostNameType.Dns && uri.Host == this.firstUri.Host)
                 {
-                    if (this.pageUrlEqual.Any(s => uri.LocalPath == s)
+                    // Anchor check list.
+                    //// TODO: Change to not use.  Use XPath.
+                    if (addThis
+                        || this.pageUrlEqual.Any(s => uri.LocalPath == s)
                         || this.pageUrlStartWith.Any(s => uri.LocalPath.StartsWith(s, StringComparison.OrdinalIgnoreCase)))
                     {
                         if (!this.knownPages.Contains(uri))
@@ -139,15 +143,17 @@ namespace Scraper
         /// Find all HTML anchors.
         /// </summary>
         /// <param name="htmlDoc">HTML document to parse.</param>
-        private void FindAllAnchors(HtmlDocument htmlDoc)
+        /// <param name="xpath">The XPath expression to find the anchors.</param>
+        /// <param name="addThis">True to skip the anchor check list.</param>
+        private void FindAllAnchors(HtmlDocument htmlDoc, string xpath, bool addThis = true)
         {
-            HtmlNodeCollection anchors = htmlDoc.DocumentNode.SelectNodes("//a");
+            HtmlNodeCollection anchors = htmlDoc.DocumentNode.SelectNodes(xpath);
             foreach (var anchorNode in anchors)
             {
                 HtmlAttribute attribute = anchorNode.Attributes["href"];
                 if (attribute != null)
                 {
-                    this.AddPageToProcess(attribute.Value);
+                    this.AddPageToProcess(attribute.Value, addThis);
                 }
             }
         }
