@@ -10,6 +10,7 @@ namespace Scraper
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using HtmlAgilityPack;
+    using Scraper.Model;
 
     /// <summary>
     /// Scraper service class.
@@ -25,6 +26,7 @@ namespace Scraper
         private readonly HashSet<Uri> knownPages = new HashSet<Uri>();
         private readonly Queue<Uri> pagesToProcess = new Queue<Uri>();
         private readonly ReviewResult result = new ReviewResult();
+        private readonly List<Bicycle> bicycles = new List<Bicycle>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ScraperService"/> class.
@@ -80,6 +82,7 @@ namespace Scraper
                     // Process HTML document.
                     if (htmlDoc != null)
                     {
+                        this.FindArticleReviewItem(htmlDoc);
                         this.FindAllAnchors(htmlDoc, "//a[contains(@href,'/category/bikes/page/')]");
                         this.FindAllAnchors(htmlDoc, "//div[contains(@class,'review-item-wrapper')]//div[contains(@class,'review-read-more-wrapper')]/a");
                         htmlDoc = null;
@@ -92,6 +95,7 @@ namespace Scraper
                     }
                 }
 
+                this.result.Bicycles = this.bicycles;
                 return this.result;
             }
             finally
@@ -133,17 +137,37 @@ namespace Scraper
         private void FindAllAnchors(HtmlDocument htmlDoc, string xpath)
         {
             HtmlNodeCollection anchors = htmlDoc.DocumentNode.SelectNodes(xpath);
-            foreach (var anchorNode in anchors)
+            if (anchors != null && anchors.Count > 0)
             {
-                HtmlAttribute attribute = anchorNode.Attributes["href"];
-                if (attribute != null)
+                foreach (var anchorNode in anchors)
                 {
-                    this.AddPageToProcess(attribute.Value);
+                    HtmlAttribute attribute = anchorNode.Attributes["href"];
+                    if (attribute != null)
+                    {
+                        this.AddPageToProcess(attribute.Value);
+                    }
                 }
             }
         }
 
-        //// Example.
-        //// HtmlNodeCollection anchors = htmlDoc.DocumentNode.SelectNodes("//div[contains(@class,'review-item-wrapper')]//div[contains(@class,'review-read-more-wrapper')]/a");
+        /// <summary>
+        /// Find article review item.
+        /// </summary>
+        /// <param name="htmlDoc">HTML document to parse.</param>
+        private void FindArticleReviewItem(HtmlDocument htmlDoc)
+        {
+            HtmlNodeCollection fields = htmlDoc.DocumentNode.SelectNodes("//section[@id='introduction']/div[@class='review-introduction']/div[@class='meta-field']");
+            if (fields != null && fields.Count > 0)
+            {
+                Bicycle item = new Bicycle
+                {
+                    Make = fields[0].ChildNodes[1].InnerText.Trim(),
+                    Model = fields[1].ChildNodes[1].InnerText.Trim(),
+                };
+
+                Console.WriteLine($"Review for {item.Make} / {item.Model}");
+                this.bicycles.Add(item);
+            }
+        }
     }
 }

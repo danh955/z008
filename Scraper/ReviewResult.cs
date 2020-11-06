@@ -5,6 +5,8 @@
 namespace Scraper
 {
     using System;
+    using System.Collections.Generic;
+    using Scraper.Model;
 
     /// <summary>
     /// Review result class.
@@ -25,6 +27,11 @@ namespace Scraper
         /// Gets process end time.
         /// </summary>
         public DateTimeOffset EndTime { get; internal set; }
+
+        /// <summary>
+        /// Gets list of bicycle reviews.
+        /// </summary>
+        public IEnumerable<Bicycle> Bicycles { get; internal set; }
 
         /// <summary>
         /// Set all fields to its default values.
